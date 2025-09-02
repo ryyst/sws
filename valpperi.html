@@ -275,7 +275,7 @@
             ctx.font = '11px monospace';
             ctx.textAlign = 'center';
 
-            const probabilityY = chartArea.bottom + 25; // Position below chart
+            const probabilityY = chartArea.bottom + 15; // Position below chart
             for (let i = 0; i < labels.length; i++) {
               const prob = probabilityValues[i];
               // Always show probability, defaulting to 0% if no data
@@ -283,12 +283,6 @@
               const x = xScale.getPixelForValue(i);
               ctx.fillText(`${percentage}%`, x, probabilityY);
             }
-
-            // Add header for probabilities
-            ctx.fillStyle = '#4A90E2';
-            ctx.font = '10px monospace';
-            ctx.textAlign = 'left';
-            ctx.fillText('Rain Probability:', chartArea.left, probabilityY - 15);
 
             ctx.restore();
           }

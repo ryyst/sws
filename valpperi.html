@@ -15,9 +15,8 @@
   <body>
 
     <!-- Wrapper contentz -->
-    <pre>Incoming transmission...</pre>
     <canvas id="chart"></canvas>
-    <pre id="terminal"></pre>
+    <pre id="terminal">Incoming transmission...</pre>
 
     <!-- Big codez -->
     <script>
@@ -42,8 +41,15 @@
       const QUERY_OBSERVATIONS = 'fmi::observations::weather::timevaluepair'
       const QUERY_FORECAST = 'fmi::forecast::harmonie::surface::point::timevaluepair'
 
-      const CHART = document.getElementById("chart")
-      const TERMINAL = document.getElementById("terminal");
+      const CHART_ELEM = document.getElementById("chart")
+
+      const terminal = (() => {
+        const _t = document.getElementById("terminal");
+        return {
+          write: (text) => _t.append(text),
+          clear: () => _t.textContent = ''
+        };
+      })();
 
 
       /****************************************************************************
@@ -71,7 +77,7 @@
 
           return response.text()
         } catch (e) {
-          TERMINAL.append(`\nError fetching "${queryType}" data for location "${API_PARAMS.place}".`);
+          terminal.write(`\nError fetching "${queryType}" data for location "${API_PARAMS.place}".`);
           return null
         }
       }
@@ -139,18 +145,18 @@
         console.log("OBS:", observations)
 
         if (!observations.length && !forecast.length) {
-          TERMINAL.append(`\nNo data found. Exiting process... :(`);
+          terminal.write(`\nNo data found. Exiting process... :(`);
           return
         }
 
-
-        TERMINAL.append(`\n    THE PAST              THE FUTURE`);
+        terminal.clear()
+        terminal.write(`\n    THE PAST              THE FUTURE`);
 
         // Print our values into the "terminal".
         observations.reverse().forEach((point, i) => {
           const point2 = forecast[i];
 
-          TERMINAL.append(`\n${point.time}: ${point.value}        ${point2.time}: ${point2.value}`);
+          terminal.write(`\n${point.time}: ${point.value}        ${point2.time}: ${point2.value}`);
         });
 
 
@@ -173,10 +179,50 @@
           values.push(value);
         })
 
-        TERMINAL.append(`\n`)
+        terminal.write(`\n`)
+
+        // Calculate the boundary index between past and future data
+        const boundaryIndex = observations.length - 1;
+
+        // Custom plugin to draw vertical line at boundary
+        const verticalLinePlugin = {
+          id: 'verticalLine',
+          afterDraw: function(chart) {
+            if (chart.tooltip._active && chart.tooltip._active.length) {
+              return; // Don't draw if tooltip is active
+            }
+
+            const ctx = chart.ctx;
+            const chartArea = chart.chartArea;
+
+            // Calculate x position for the boundary
+            const xScale = chart.scales.x;
+            const xPos = xScale.getPixelForValue(boundaryIndex + 0.5);
+
+            ctx.save();
+            ctx.strokeStyle = '#FFD700'; // Gold color
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]); // Dashed line
+            ctx.beginPath();
+            ctx.moveTo(xPos, chartArea.top + 5);
+            ctx.lineTo(xPos, chartArea.bottom - 5);
+            ctx.stroke();
+
+            // Add label
+            ctx.fillStyle = '#FFD700';
+            ctx.font = 'bold 12px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('NOW', xPos, chartArea.top + 0);
+
+            ctx.restore();
+          }
+        };
+
+        // Register the plugin
+        Chart.register(verticalLinePlugin);
 
         // Last step, create the chart itself.
-        new Chart(CHART, {
+        new Chart(CHART_ELEM, {
           type: 'line',
           data: {
             labels: labels,

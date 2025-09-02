@@ -34,7 +34,7 @@
         request: 'getFeature',
         parameters: 'temperature,Precipitation1h,PoP,WindSpeedMS,WindDirection',
         place: getFileName(),
-        timestep: 60, // Datapoint every N minutes
+        timestep: 120, // Datapoint every N minutes
         timesteps: 48, // How many points
       };
 
@@ -298,25 +298,25 @@
             ctx.fillStyle = '#90EE90';
             ctx.font = '10px monospace';
             ctx.textAlign = 'center';
-            
+
             const windY = probabilityY + 25; // Position below probability
-            
+
             for (let i = 0; i < labels.length; i++) {
               const windSpeed = windSpeedValues[i];
               const windDirection = windDirectionValues[i];
-              
+
               if (windSpeed !== null && windDirection !== null) {
                 const x = xScale.getPixelForValue(i);
                 const speedMs = Math.round(windSpeed * 10) / 10; // Round to 1 decimal
-                
+
                 // Draw wind speed
                 ctx.fillText(`${speedMs}m/s`, x, windY);
-                
+
                 // Draw wind direction arrow
                 ctx.save();
                 ctx.translate(x, windY - 12);
                 ctx.rotate((windDirection * Math.PI) / 180); // Convert degrees to radians
-                
+
                 // Draw arrow pointing in wind direction
                 ctx.strokeStyle = '#90EE90';
                 ctx.lineWidth = 1;
@@ -327,7 +327,7 @@
                 ctx.lineTo(0, 6);
                 ctx.lineTo(2, 4);
                 ctx.stroke();
-                
+
                 ctx.restore();
               }
             }
@@ -376,6 +376,12 @@
           },
           options: {
             scales: {
+              x: {
+                ticks: {
+                  color: '#666',
+                  padding: 55 // Move labels down
+                }
+              },
               y: {
                 type: 'linear',
                 display: true,

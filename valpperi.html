@@ -32,7 +32,7 @@
       const API_BASE = "https://opendata.fmi.fi/wfs";
       const API_PARAMS = {
         request: 'getFeature',
-        parameters: 'temperature',
+        parameters: 'temperature,Precipitation1h',
         place: getFileName(),
         timestep: 20, // Datapoint every N minutes
         timesteps: 100, // How many points
@@ -122,15 +122,39 @@
         const elements = xml.getElementsByTagName('wml2:MeasurementTVP')
         console.log("Elems:", elements)
 
-        // Map array of XML elements into javascript objects
-        return Array.from(elements).map((elem) => {
+        // Group data by timestamp since we have multiple parameters
+        const dataByTime = {};
+        
+        Array.from(elements).forEach((elem) => {
           const [timeElem, valueElem] = elem.children;
-          return {
-            color: getColorOfDay(timeElem.innerHTML),
-            time: formatTime(timeElem.innerHTML, true),
-            value: valueElem.innerHTML
-          };
+          const time = timeElem.innerHTML;
+          const value = parseFloat(valueElem.innerHTML);
+          
+          if (!dataByTime[time]) {
+            dataByTime[time] = {
+              color: getColorOfDay(time),
+              time: formatTime(time, true),
+              temperature: null,
+              precipitation: null
+            };
+          }
+          
+          // Determine parameter type based on parent element or element position
+          const parentElem = elem.parentElement;
+          const parameterName = parentElem.getAttribute('gml:id');
+          
+          if (parameterName && parameterName.includes('temperature')) {
+            dataByTime[time].temperature = value;
+          } else if (parameterName && parameterName.includes('Precipitation1h')) {
+            dataByTime[time].precipitation = value;
+          }
         });
+
+        // Convert to array and sort by time
+        return Object.values(dataByTime).sort((a, b) => 
+          new Date(Object.keys(dataByTime).find(key => dataByTime[key] === a)) - 
+          new Date(Object.keys(dataByTime).find(key => dataByTime[key] === b))
+        );
       }
 
       /** Wrap everything inside one async main runner, because top-level async is not allowed. */
@@ -150,13 +174,15 @@
         }
 
         terminal.clear()
-        terminal.write(`\n    THE PAST              THE FUTURE`);
+        terminal.write(`\n    THE PAST                    THE FUTURE`);
+        terminal.write(`\n    Temp | Rain                 Temp | Rain`);
 
         // Print our values into the "terminal".
         observations.reverse().forEach((point, i) => {
           const point2 = forecast[i];
-
-          terminal.write(`\n${point.time}: ${point.value}        ${point2.time}: ${point2.value}`);
+          if (point2) {
+            terminal.write(`\n${point.time}: ${point.temperature}°C | ${point.precipitation}mm   ${point2.time}: ${point2.temperature}°C | ${point2.precipitation}mm`);
+          }
         });
 
 
@@ -166,17 +192,19 @@
         ]
 
         const labels = [];
-        const values = [];
+        const temperatureValues = [];
+        const precipitationValues = [];
         const colors = [];
 
         // Pre-format data for our chart.
         combinedData.forEach((point) => {
-          const { time, value, color } = point;
+          const { time, temperature, precipitation, color } = point;
 
           // Separate our values into the arrays used by our Chart.
           colors.push(color)
           labels.push(time);
-          values.push(value);
+          temperatureValues.push(temperature);
+          precipitationValues.push(precipitation);
         })
 
         terminal.write(`\n`)
@@ -229,25 +257,66 @@
             datasets: [
               {
                 label: 'Temperature',
-                data: values,
-                borderWidth: 1,
-                borderColor: colors,
+                data: temperatureValues,
+                borderWidth: 2,
+                borderColor: '#1B1',
+                yAxisID: 'y',
+                pointRadius: 2,
+              },
+              {
+                label: 'Precipitation',
+                data: precipitationValues,
+                borderWidth: 2,
+                borderColor: '#4A90E2',
+                backgroundColor: 'rgba(74, 144, 226, 0.1)',
+                yAxisID: 'y1',
+                pointRadius: 2,
+                fill: true,
               },
               {
                 // Non-data. Just a hack to show a horizontal line at 0 Celsius with minimal effort.
                 label: 'Freezing point',
-                data: values.map(_ => 0),
+                data: temperatureValues.map(_ => 0),
                 borderWidth: 0.5,
                 borderColor: 'red',
                 pointRadius: 0,
+                yAxisID: 'y',
               },
             ]
           },
           options: {
-            //borderColor: "#191",
             scales: {
               y: {
-                beginAtZero: true,
+                type: 'linear',
+                display: true,
+                position: 'left',
+                title: {
+                  display: true,
+                  text: 'Temperature (°C)',
+                  color: '#1B1'
+                },
+                grid: {
+                  color: '#333'
+                },
+                ticks: {
+                  color: '#1B1'
+                }
+              },
+              y1: {
+                type: 'linear',
+                display: true,
+                position: 'right',
+                title: {
+                  display: true,
+                  text: 'Precipitation (mm)',
+                  color: '#4A90E2'
+                },
+                grid: {
+                  drawOnChartArea: false,
+                },
+                ticks: {
+                  color: '#4A90E2'
+                }
               }
             },
             plugins: {

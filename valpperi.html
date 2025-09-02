@@ -16,6 +16,7 @@
 
     <!-- Wrapper contentz -->
     <canvas id="chart"></canvas>
+    <div id="probability-display"></div>
     <pre id="terminal">Incoming transmission...</pre>
 
     <!-- Big codez -->
@@ -32,7 +33,7 @@
       const API_BASE = "https://opendata.fmi.fi/wfs";
       const API_PARAMS = {
         request: 'getFeature',
-        parameters: 'temperature,Precipitation1h',
+        parameters: 'temperature,Precipitation1h,PoP',
         place: getFileName(),
         timestep: 20, // Datapoint every N minutes
         timesteps: 100, // How many points
@@ -147,7 +148,8 @@
                   color: getColorOfDay(time),
                   time: formatTime(time, true),
                   temperature: null,
-                  precipitation: null
+                  precipitation: null,
+                  precipitationProbability: null
                 };
               }
 
@@ -157,6 +159,9 @@
               } else if (propertyHref.includes('Precipitation1h')) {
                 // Handle NaN precipitation values by treating them as 0
                 dataByTime[time].precipitation = (isNaN(value) || valueText === 'NaN') ? 0 : value;
+              } else if (propertyHref.includes('PoP')) {
+                // Handle NaN probability values by treating them as null
+                dataByTime[time].precipitationProbability = (isNaN(value) || valueText === 'NaN') ? null : value;
               }
             }
           });
@@ -221,6 +226,58 @@
 
         // Calculate the boundary index between past and future data
         const boundaryIndex = observations.length - 1;
+
+        // Create precipitation probability display
+        const probabilityDisplay = document.getElementById('probability-display');
+        probabilityDisplay.innerHTML = '';
+
+        // Only show probabilities for forecast data (future)
+        if (forecast.length > 0) {
+          const probabilityContainer = document.createElement('div');
+          probabilityContainer.style.cssText = `
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            color: #4A90E2;
+            border-top: 1px solid #333;
+          `;
+
+          // Sample every few data points to avoid overcrowding
+          const step = Math.max(1, Math.floor(forecast.length / 8));
+          for (let i = 0; i < forecast.length; i += step) {
+            const point = forecast[i];
+            if (point && point.precipitationProbability !== null) {
+              const probElement = document.createElement('div');
+              probElement.style.cssText = `
+                text-align: center;
+                flex: 1;
+              `;
+              probElement.innerHTML = `
+                <div style="font-weight: bold;">${Math.round(point.precipitationProbability)}%</div>
+                <div style="font-size: 10px; opacity: 0.7;">${point.time.split(' - ')[1]}</div>
+              `;
+              probabilityContainer.appendChild(probElement);
+            }
+          }
+
+          if (probabilityContainer.children.length > 0) {
+            const header = document.createElement('div');
+            header.style.cssText = `
+              text-align: center;
+              font-size: 11px;
+              color: #4A90E2;
+              margin-bottom: 5px;
+              opacity: 0.8;
+            `;
+            header.textContent = 'Rain Probability (%)';
+            probabilityDisplay.appendChild(header);
+            probabilityDisplay.appendChild(probabilityContainer);
+          }
+        }
 
         // Custom plugin to draw vertical line at boundary
         const verticalLinePlugin = {

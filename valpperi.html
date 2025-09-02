@@ -139,7 +139,8 @@
             
             if (timeElem && valueElem) {
               const time = timeElem.textContent;
-              const value = parseFloat(valueElem.textContent);
+              const valueText = valueElem.textContent;
+              const value = parseFloat(valueText);
               
               if (!dataByTime[time]) {
                 dataByTime[time] = {
@@ -152,9 +153,10 @@
               
               // Determine parameter type based on observed property
               if (propertyHref.includes('temperature')) {
-                dataByTime[time].temperature = value;
+                dataByTime[time].temperature = isNaN(value) ? null : value;
               } else if (propertyHref.includes('Precipitation1h')) {
-                dataByTime[time].precipitation = value;
+                // Handle NaN precipitation values by treating them as 0
+                dataByTime[time].precipitation = (isNaN(value) || valueText === 'NaN') ? 0 : value;
               }
             }
           });

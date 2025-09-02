@@ -16,7 +16,6 @@
 
     <!-- Wrapper contentz -->
     <canvas id="chart"></canvas>
-    <div id="probability-display"></div>
     <pre id="terminal">Incoming transmission...</pre>
 
     <!-- Big codez -->
@@ -209,17 +208,19 @@
         const labels = [];
         const temperatureValues = [];
         const precipitationValues = [];
+        const probabilityValues = [];
         const colors = [];
 
         // Pre-format data for our chart.
         combinedData.forEach((point) => {
-          const { time, temperature, precipitation, color } = point;
+          const { time, temperature, precipitation, precipitationProbability, color } = point;
 
           // Separate our values into the arrays used by our Chart.
           colors.push(color)
           labels.push(time);
           temperatureValues.push(temperature);
           precipitationValues.push(precipitation);
+          probabilityValues.push(precipitationProbability);
         })
 
         terminal.write(`\n`)
@@ -227,87 +228,56 @@
         // Calculate the boundary index between past and future data
         const boundaryIndex = observations.length - 1;
 
-        // Create precipitation probability display
-        const probabilityDisplay = document.getElementById('probability-display');
-        probabilityDisplay.innerHTML = '';
-
-        // Only show probabilities for forecast data (future)
-        if (forecast.length > 0) {
-          const probabilityContainer = document.createElement('div');
-          probabilityContainer.style.cssText = `
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            margin: 10px 0;
-            font-family: monospace;
-            font-size: 12px;
-            color: #4A90E2;
-            border-top: 1px solid #333;
-          `;
-
-          // Sample every few data points to avoid overcrowding
-          const step = Math.max(1, Math.floor(forecast.length / 8));
-          for (let i = 0; i < forecast.length; i += step) {
-            const point = forecast[i];
-            if (point && point.precipitationProbability !== null) {
-              const probElement = document.createElement('div');
-              probElement.style.cssText = `
-                text-align: center;
-                flex: 1;
-              `;
-              probElement.innerHTML = `
-                <div style="font-weight: bold;">${Math.round(point.precipitationProbability)}%</div>
-                <div style="font-size: 10px; opacity: 0.7;">${point.time.split(' - ')[1]}</div>
-              `;
-              probabilityContainer.appendChild(probElement);
-            }
-          }
-
-          if (probabilityContainer.children.length > 0) {
-            const header = document.createElement('div');
-            header.style.cssText = `
-              text-align: center;
-              font-size: 11px;
-              color: #4A90E2;
-              margin-bottom: 5px;
-              opacity: 0.8;
-            `;
-            header.textContent = 'Rain Probability (%)';
-            probabilityDisplay.appendChild(header);
-            probabilityDisplay.appendChild(probabilityContainer);
-          }
-        }
 
         // Custom plugin to draw vertical line at boundary
         const verticalLinePlugin = {
           id: 'verticalLine',
           afterDraw: function(chart) {
-            if (chart.tooltip._active && chart.tooltip._active.length) {
-              return; // Don't draw if tooltip is active
-            }
-
             const ctx = chart.ctx;
             const chartArea = chart.chartArea;
-
-            // Calculate x position for the boundary
             const xScale = chart.scales.x;
-            const xPos = xScale.getPixelForValue(boundaryIndex + 0.5);
 
             ctx.save();
-            ctx.strokeStyle = '#FFD700'; // Gold color
+
+            // Draw vertical "NOW" line
+            const xPos = xScale.getPixelForValue(boundaryIndex + 0.5);
+            ctx.strokeStyle = '#FFD700';
             ctx.lineWidth = 1;
-            ctx.setLineDash([5, 5]); // Dashed line
+            ctx.setLineDash([5, 5]);
             ctx.beginPath();
             ctx.moveTo(xPos, chartArea.top + 5);
             ctx.lineTo(xPos, chartArea.bottom - 5);
             ctx.stroke();
 
-            // Add label
+            // Add NOW label
             ctx.fillStyle = '#FFD700';
             ctx.font = 'bold 12px monospace';
             ctx.textAlign = 'center';
-            ctx.fillText('NOW', xPos, chartArea.top + 0);
+            ctx.fillText('NOW', xPos, chartArea.top - 5);
+
+            // Draw precipitation probabilities below chart
+            ctx.setLineDash([]); // Reset line dash
+            ctx.fillStyle = '#4A90E2';
+            ctx.font = '11px monospace';
+            ctx.textAlign = 'center';
+
+            const probabilityY = chartArea.bottom + 25; // Position below chart
+            const step = Math.max(1, Math.floor(labels.length / 12)); // Show ~12 values max
+
+            for (let i = 0; i < labels.length; i += step) {
+              const prob = probabilityValues[i];
+              if (prob !== null && prob !== undefined && !isNaN(prob)) {
+                const x = xScale.getPixelForValue(i);
+                const percentage = Math.round(prob);
+                ctx.fillText(`${percentage}%`, x, probabilityY);
+              }
+            }
+
+            // Add header for probabilities
+            ctx.fillStyle = '#4A90E2';
+            ctx.font = '10px monospace';
+            ctx.textAlign = 'left';
+            ctx.fillText('Rain Probability:', chartArea.left, probabilityY - 15);
 
             ctx.restore();
           }

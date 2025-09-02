@@ -34,8 +34,8 @@
         request: 'getFeature',
         parameters: 'temperature,Precipitation1h,PoP',
         place: getFileName(),
-        timestep: 20, // Datapoint every N minutes
-        timesteps: 100, // How many points
+        timestep: 60, // Datapoint every N minutes  
+        timesteps: 48, // How many points
       };
 
       const QUERY_OBSERVATIONS = 'fmi::observations::weather::timevaluepair'
@@ -148,7 +148,7 @@
                   time: formatTime(time, true),
                   temperature: null,
                   precipitation: null,
-                  precipitationProbability: null
+                  precipitationProbability: 0
                 };
               }
 
@@ -159,8 +159,8 @@
                 // Handle NaN precipitation values by treating them as 0
                 dataByTime[time].precipitation = (isNaN(value) || valueText === 'NaN') ? 0 : value;
               } else if (propertyHref.includes('PoP')) {
-                // Handle NaN probability values by treating them as null
-                dataByTime[time].precipitationProbability = (isNaN(value) || valueText === 'NaN') ? null : value;
+                // Handle NaN probability values by treating them as 0%
+                dataByTime[time].precipitationProbability = (isNaN(value) || valueText === 'NaN') ? 0 : value;
               }
             }
           });
@@ -168,8 +168,22 @@
 
         // Convert to array and sort by time
         const sortedTimes = Object.keys(dataByTime).sort((a, b) => new Date(a) - new Date(b));
-        return sortedTimes.map(time => dataByTime[time]);
+        const sortedData = sortedTimes.map(time => dataByTime[time]);
+
+        // Fill missing PoP values by carrying forward the last known value
+        let lastKnownPoP = 0;
+        sortedData.forEach(point => {
+          if (point.precipitationProbability !== 0) {
+            lastKnownPoP = point.precipitationProbability;
+          } else if (lastKnownPoP !== 0) {
+            point.precipitationProbability = lastKnownPoP;
+          }
+        });
+
+      console.log("herez?", sortedData)
+        return sortedData;
       }
+
 
       /** Wrap everything inside one async main runner, because top-level async is not allowed. */
       async function main() {
@@ -262,15 +276,14 @@
             ctx.textAlign = 'center';
 
             const probabilityY = chartArea.bottom + 25; // Position below chart
-            const step = Math.max(1, Math.floor(labels.length / 12)); // Show ~12 values max
+            const step = Math.max(1, Math.floor(labels.length / 24)); // Show more probability values
 
             for (let i = 0; i < labels.length; i += step) {
               const prob = probabilityValues[i];
-              if (prob !== null && prob !== undefined && !isNaN(prob)) {
-                const x = xScale.getPixelForValue(i);
-                const percentage = Math.round(prob);
-                ctx.fillText(`${percentage}%`, x, probabilityY);
-              }
+              // Always show probability, defaulting to 0% if no data
+              const percentage = (prob !== null && prob !== undefined && !isNaN(prob)) ? Math.round(prob) : 0;
+              const x = xScale.getPixelForValue(i);
+              ctx.fillText(`${percentage}%`, x, probabilityY);
             }
 
             // Add header for probabilities

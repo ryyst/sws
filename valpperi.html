@@ -32,7 +32,7 @@
       const API_BASE = "https://opendata.fmi.fi/wfs";
       const API_PARAMS = {
         request: 'getFeature',
-        parameters: 'temperature,Precipitation1h,PoP',
+        parameters: 'temperature,Precipitation1h,PoP,WindSpeedMS,WindDirection',
         place: getFileName(),
         timestep: 60, // Datapoint every N minutes
         timesteps: 48, // How many points
@@ -148,7 +148,9 @@
                   time: formatTime(time, true),
                   temperature: null,
                   precipitation: null,
-                  precipitationProbability: 0
+                  precipitationProbability: 0,
+                  windSpeed: null,
+                  windDirection: null
                 };
               }
 
@@ -161,6 +163,10 @@
               } else if (propertyHref.includes('PoP')) {
                 // Handle NaN probability values by treating them as 0%
                 dataByTime[time].precipitationProbability = (isNaN(value) || valueText === 'NaN') ? 0 : value;
+              } else if (propertyHref.includes('WindSpeedMS')) {
+                dataByTime[time].windSpeed = isNaN(value) ? 0 : value;
+              } else if (propertyHref.includes('WindDirection')) {
+                dataByTime[time].windDirection = isNaN(value) ? 0 : value;
               }
             }
           });
@@ -223,11 +229,13 @@
         const temperatureValues = [];
         const precipitationValues = [];
         const probabilityValues = [];
+        const windSpeedValues = [];
+        const windDirectionValues = [];
         const colors = [];
 
         // Pre-format data for our chart.
         combinedData.forEach((point) => {
-          const { time, temperature, precipitation, precipitationProbability, color } = point;
+          const { time, temperature, precipitation, precipitationProbability, windSpeed, windDirection, color } = point;
 
           // Separate our values into the arrays used by our Chart.
           colors.push(color)
@@ -235,6 +243,8 @@
           temperatureValues.push(temperature);
           precipitationValues.push(precipitation);
           probabilityValues.push(precipitationProbability);
+          windSpeedValues.push(windSpeed);
+          windDirectionValues.push(windDirection);
         })
 
         terminal.write(`\n`)
@@ -275,13 +285,51 @@
             ctx.font = '11px monospace';
             ctx.textAlign = 'center';
 
-            const probabilityY = chartArea.bottom + 15; // Position below chart
+            const probabilityY = chartArea.bottom + 25; // Position below chart
             for (let i = 0; i < labels.length; i++) {
               const prob = probabilityValues[i];
               // Always show probability, defaulting to 0% if no data
               const percentage = (prob !== null && prob !== undefined && !isNaN(prob)) ? Math.round(prob) : 0;
               const x = xScale.getPixelForValue(i);
               ctx.fillText(`${percentage}%`, x, probabilityY);
+            }
+
+            // Draw wind data below probability line
+            ctx.fillStyle = '#90EE90';
+            ctx.font = '10px monospace';
+            ctx.textAlign = 'center';
+            
+            const windY = probabilityY + 25; // Position below probability
+            
+            for (let i = 0; i < labels.length; i++) {
+              const windSpeed = windSpeedValues[i];
+              const windDirection = windDirectionValues[i];
+              
+              if (windSpeed !== null && windDirection !== null) {
+                const x = xScale.getPixelForValue(i);
+                const speedMs = Math.round(windSpeed * 10) / 10; // Round to 1 decimal
+                
+                // Draw wind speed
+                ctx.fillText(`${speedMs}m/s`, x, windY);
+                
+                // Draw wind direction arrow
+                ctx.save();
+                ctx.translate(x, windY - 12);
+                ctx.rotate((windDirection * Math.PI) / 180); // Convert degrees to radians
+                
+                // Draw arrow pointing in wind direction
+                ctx.strokeStyle = '#90EE90';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(0, -6);
+                ctx.lineTo(0, 6);
+                ctx.moveTo(-2, 4);
+                ctx.lineTo(0, 6);
+                ctx.lineTo(2, 4);
+                ctx.stroke();
+                
+                ctx.restore();
+              }
             }
 
             ctx.restore();

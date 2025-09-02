@@ -124,24 +124,24 @@
 
         // Find all observation collections
         const observations = xml.getElementsByTagName('omso:PointTimeSeriesObservation');
-        
+
         Array.from(observations).forEach((obs) => {
           // Get the observed property to determine data type
           const observedProperty = obs.querySelector('om\\:observedProperty, observedProperty');
           const propertyHref = observedProperty ? observedProperty.getAttribute('xlink:href') : '';
-          
+
           // Find all measurement points in this observation
           const points = obs.querySelectorAll('wml2\\:point, point');
-          
+
           Array.from(points).forEach((point) => {
             const timeElem = point.querySelector('wml2\\:time, time');
             const valueElem = point.querySelector('wml2\\:value, value');
-            
+
             if (timeElem && valueElem) {
               const time = timeElem.textContent;
               const valueText = valueElem.textContent;
               const value = parseFloat(valueText);
-              
+
               if (!dataByTime[time]) {
                 dataByTime[time] = {
                   color: getColorOfDay(time),
@@ -150,7 +150,7 @@
                   precipitation: null
                 };
               }
-              
+
               // Determine parameter type based on observed property
               if (propertyHref.includes('temperature')) {
                 dataByTime[time].temperature = isNaN(value) ? null : value;
@@ -267,6 +267,7 @@
             datasets: [
               {
                 label: 'Temperature',
+                type: 'line',
                 data: temperatureValues,
                 borderWidth: 2,
                 borderColor: '#1B1',
@@ -275,13 +276,12 @@
               },
               {
                 label: 'Precipitation',
+                type: 'bar',
                 data: precipitationValues,
-                borderWidth: 2,
+                borderWidth: 1,
                 borderColor: '#4A90E2',
-                backgroundColor: 'rgba(74, 144, 226, 0.1)',
+                backgroundColor: 'rgba(74, 144, 226, 0.7)',
                 yAxisID: 'y1',
-                pointRadius: 2,
-                fill: true,
               },
               {
                 // Non-data. Just a hack to show a horizontal line at 0 Celsius with minimal effort.
@@ -300,6 +300,8 @@
                 type: 'linear',
                 display: true,
                 position: 'left',
+                min: -30,
+                max: 35,
                 title: {
                   display: true,
                   text: 'Temperature (°C)',
@@ -309,23 +311,27 @@
                   color: '#333'
                 },
                 ticks: {
-                  color: '#1B1'
+                  color: '#1B1',
+                  stepSize: 5
                 }
               },
               y1: {
                 type: 'linear',
                 display: true,
                 position: 'right',
+                min: 0,
+                max: 10,
                 title: {
                   display: true,
-                  text: 'Precipitation (mm)',
+                  text: 'Precipitation (mm/h)',
                   color: '#4A90E2'
                 },
                 grid: {
                   drawOnChartArea: false,
                 },
                 ticks: {
-                  color: '#4A90E2'
+                  color: '#4A90E2',
+                  stepSize: 2
                 }
               }
             },

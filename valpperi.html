@@ -4,7 +4,6 @@
     <title>Static weather station - SWS</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-        <script src="./asciichart.js"></script>
     <style>
       body {
         background: #111;
@@ -151,7 +150,7 @@
         observations.reverse().forEach((point, i) => {
           const point2 = forecast[i];
 
-          //TERMINAL.append(`\n${point.time}: ${point.value}        ${point2.time}: ${point2.value}`);
+          TERMINAL.append(`\n${point.time}: ${point.value}        ${point2.time}: ${point2.value}`);
         });
 
 
@@ -175,7 +174,6 @@
         })
 
         TERMINAL.append(`\n`)
-        TERMINAL.append(asciichart.plot([forecast.map(o => o.value)]))
 
         // Last step, create the chart itself.
         new Chart(CHART, {

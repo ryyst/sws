@@ -34,7 +34,7 @@
         request: 'getFeature',
         parameters: 'temperature,Precipitation1h,PoP',
         place: getFileName(),
-        timestep: 60, // Datapoint every N minutes  
+        timestep: 60, // Datapoint every N minutes
         timesteps: 48, // How many points
       };
 
@@ -276,9 +276,7 @@
             ctx.textAlign = 'center';
 
             const probabilityY = chartArea.bottom + 25; // Position below chart
-            const step = Math.max(1, Math.floor(labels.length / 24)); // Show more probability values
-
-            for (let i = 0; i < labels.length; i += step) {
+            for (let i = 0; i < labels.length; i++) {
               const prob = probabilityValues[i];
               // Always show probability, defaulting to 0% if no data
               const percentage = (prob !== null && prob !== undefined && !isNaN(prob)) ? Math.round(prob) : 0;

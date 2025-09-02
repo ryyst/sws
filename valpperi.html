@@ -119,42 +119,50 @@
         const xml = new window.DOMParser().parseFromString(xmlString, "text/xml")
         console.log("XML:", xml)
 
-        const elements = xml.getElementsByTagName('wml2:MeasurementTVP')
-        console.log("Elems:", elements)
-
         // Group data by timestamp since we have multiple parameters
         const dataByTime = {};
+
+        // Find all observation collections
+        const observations = xml.getElementsByTagName('omso:PointTimeSeriesObservation');
         
-        Array.from(elements).forEach((elem) => {
-          const [timeElem, valueElem] = elem.children;
-          const time = timeElem.innerHTML;
-          const value = parseFloat(valueElem.innerHTML);
+        Array.from(observations).forEach((obs) => {
+          // Get the observed property to determine data type
+          const observedProperty = obs.querySelector('om\\:observedProperty, observedProperty');
+          const propertyHref = observedProperty ? observedProperty.getAttribute('xlink:href') : '';
           
-          if (!dataByTime[time]) {
-            dataByTime[time] = {
-              color: getColorOfDay(time),
-              time: formatTime(time, true),
-              temperature: null,
-              precipitation: null
-            };
-          }
+          // Find all measurement points in this observation
+          const points = obs.querySelectorAll('wml2\\:point, point');
           
-          // Determine parameter type based on parent element or element position
-          const parentElem = elem.parentElement;
-          const parameterName = parentElem.getAttribute('gml:id');
-          
-          if (parameterName && parameterName.includes('temperature')) {
-            dataByTime[time].temperature = value;
-          } else if (parameterName && parameterName.includes('Precipitation1h')) {
-            dataByTime[time].precipitation = value;
-          }
+          Array.from(points).forEach((point) => {
+            const timeElem = point.querySelector('wml2\\:time, time');
+            const valueElem = point.querySelector('wml2\\:value, value');
+            
+            if (timeElem && valueElem) {
+              const time = timeElem.textContent;
+              const value = parseFloat(valueElem.textContent);
+              
+              if (!dataByTime[time]) {
+                dataByTime[time] = {
+                  color: getColorOfDay(time),
+                  time: formatTime(time, true),
+                  temperature: null,
+                  precipitation: null
+                };
+              }
+              
+              // Determine parameter type based on observed property
+              if (propertyHref.includes('temperature')) {
+                dataByTime[time].temperature = value;
+              } else if (propertyHref.includes('Precipitation1h')) {
+                dataByTime[time].precipitation = value;
+              }
+            }
+          });
         });
 
         // Convert to array and sort by time
-        return Object.values(dataByTime).sort((a, b) => 
-          new Date(Object.keys(dataByTime).find(key => dataByTime[key] === a)) - 
-          new Date(Object.keys(dataByTime).find(key => dataByTime[key] === b))
-        );
+        const sortedTimes = Object.keys(dataByTime).sort((a, b) => new Date(a) - new Date(b));
+        return sortedTimes.map(time => dataByTime[time]);
       }
 
       /** Wrap everything inside one async main runner, because top-level async is not allowed. */

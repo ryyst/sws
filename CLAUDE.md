@@ -64,7 +64,7 @@ The application features:
 
 ### Data Processing
 - Modular parsing functions with clear separation of concerns
-- Station information extraction from XML metadata  
+- Station information extraction from XML metadata
 - Time-based sorting and missing value interpolation
 
 ### Visualization
@@ -123,4 +123,4 @@ http://localhost:8000/sws.html?q=helsinki&future=72&theme=dark
 └── CLAUDE.md         # Developer guidance (this file)
 ```
 
-Keep the single-file philosophy - all functionality should remain in `sws.html` unless absolutely necessary to separate concerns.
+Keep the single-file philosophy - all functionality should remain in `sws.html`, no exceptions.

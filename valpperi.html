@@ -30,22 +30,24 @@
        * Consts
        */
       const API_BASE = "https://opendata.fmi.fi/wfs";
-      const FUTURE_HOURS = 32
-      const PAST_HOURS = 4
-      const STEP_LIMIT_TINY = 20 // Change from 15mins to 30min intervals
-      const STEP_LIMIT_SMALL = 30 // Change from 30mins to 60min intervals
+      const DEFAULT_FUTURE_HOURS = 28
+      const DEFAULT_PAST_HOURS = 12
+      const STEP_LIMIT_TINY = 20 // Jump from 15mins to 30min intervals
+      const STEP_LIMIT_SMALL = 30 // Jump from 30mins to 60min intervals
 
       const QUERY_OBSERVATIONS = 'fmi::observations::weather::timevaluepair'
       const QUERY_FORECAST = 'fmi::forecast::harmonie::surface::point::timevaluepair'
 
       const CHART_ELEM = document.getElementById("chart")
 
+      const pastHours = getPastHoursFromQuery();
+      const futureHours = getFutureHoursFromQuery();
+
 
       function getObservationParams() {
-        const hours = getHoursFromQuery();
-        const timestep = getOptimalTimestep(hours);
+        const timestep = getOptimalTimestep();
         const now = new Date();
-        const pastTime = new Date(now.getTime() - PAST_HOURS * 60 * 60 * 1000);
+        const pastTime = new Date(now.getTime() - pastHours * 60 * 60 * 1000);
 
         return {
           request: 'getFeature',
@@ -58,12 +60,9 @@
       }
 
       function getForecastParams() {
-        const hours = getHoursFromQuery();
-        const timestep = getOptimalTimestep(hours);
+        const timestep = getOptimalTimestep();
         const now = new Date();
-        const futureTime = new Date(now.getTime() + hours * 60 * 60 * 1000);
-
-        console.log("WTF??", timestep)
+        const futureTime = new Date(now.getTime() + futureHours * 60 * 60 * 1000);
 
         return {
           request: 'getFeature',
@@ -91,19 +90,26 @@
         const path = window.location.pathname;
         const fullname = path.split("/").at(-1)
 
-        return "salo" // fullname.split(".").at(0)
+        return "salo" // fullname.split(".").at(0) // DEBUG
       }
 
-      function getHoursFromQuery() {
+      function getFutureHoursFromQuery() {
         const urlParams = new URLSearchParams(window.location.search);
-        const hours = parseInt(urlParams.get('hours'));
-        return isNaN(hours) ? FUTURE_HOURS : Math.max(1, Math.min(7*24, hours)); // Max 1 week
+        const future = parseInt(urlParams.get('future'));
+        return isNaN(future) ? DEFAULT_FUTURE_HOURS : Math.max(1, Math.min(7*24, future)); // Max 1 week
       }
 
-      function getOptimalTimestep(hours) {
-        const totalHours = FUTURE_HOURS + PAST_HOURS
+      function getPastHoursFromQuery() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const past = parseInt(urlParams.get('past'));
+        return isNaN(past) ? DEFAULT_PAST_HOURS : Math.max(1, Math.min(7*24, past)); // Max 1 week
+      }
+
+      function getOptimalTimestep() {
+        const totalHours = futureHours + pastHours;
+
         if (totalHours <= STEP_LIMIT_TINY) {
-          return 15
+          return 10
         }
         if (totalHours <= STEP_LIMIT_SMALL) {
           return 30

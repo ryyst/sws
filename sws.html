@@ -696,7 +696,7 @@
 
               if (windSpeed !== null && windDirection !== null) {
                 const x = xScale.getPixelForValue(i);
-                const speedMs = Math.round(windSpeed * 10) / 10; // Round to 1 decimal
+                const speedMs = Math.round(windSpeed); // Round to 1 decimal
 
                 // Draw wind speed
                 ctx.fillText(`${speedMs}`, x, windY);

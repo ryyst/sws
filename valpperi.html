@@ -9,6 +9,72 @@
         background: #111;
         color: #1B1;
         font-size: 16px;
+        font-family: monospace;
+      }
+
+      #weather-table {
+        margin: 20px 0;
+        display: flex;
+        justify-content: center;
+      }
+
+      .table-container {
+        background: #000;
+        border: 1px solid #1B1;
+        border-radius: 5px;
+        padding: 15px;
+        min-width: 300px;
+      }
+
+      .table-container h3 {
+        color: #1B1;
+        margin: 0 0 10px 0;
+        text-align: center;
+        font-family: monospace;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: monospace;
+        font-size: 14px;
+      }
+
+      th, td {
+        border: 1px solid #1B1;
+        padding: 8px;
+        text-align: left;
+      }
+
+      th {
+        background: #222;
+        color: #1B1;
+        font-weight: bold;
+      }
+
+      td {
+        background: #111;
+      }
+
+      tr:nth-child(even) td {
+        background: #181818;
+      }
+
+      #station-info {
+        text-align: center;
+        margin: 20px 0;
+        color: #1B1;
+        font-family: monospace;
+      }
+
+      .now-divider {
+        height: 0;
+        padding: 0;
+      }
+
+      .now-divider td {
+        border: 2px solid #FFD700 !important;
+        padding: 0;
       }
     </style>
   </head>
@@ -16,7 +82,21 @@
 
     <!-- Wrapper contentz -->
     <canvas id="chart"></canvas>
-    <pre id="terminal">Incoming transmission...</pre>
+    <div id="weather-table" style="display:none;">
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Temp (°C)</th>
+              <th>Rain (mm)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="station-info"></div>
 
     <!-- Big codez -->
     <script>
@@ -49,7 +129,7 @@
 
 
       function getObservationParams() {
-        const timestep = getOptimalTimestep();
+        const timestep = 60 // getOptimalTimestep();
         const now = new Date();
         const pastTime = new Date(now.getTime() - pastHours * 60 * 60 * 1000);
 
@@ -78,13 +158,37 @@
         };
       }
 
-      const terminal = (() => {
-        const _t = document.getElementById("terminal");
-        return {
-          write: (text) => _t.append(`\n${text}`),
-          clear: () => _t.textContent = ''
-        };
-      })();
+      function populateWeatherTable(observations, forecasts) {
+        const table = document.getElementById("weather-table");
+        table.style.setProperty("display", "flex")
+
+        const tableBody = document.querySelector("#weather-table tbody");
+        const stationInfo = document.getElementById("station-info");
+
+        // Add past weather data
+        observations.forEach(point => {
+          const row = tableBody.insertRow();
+          row.insertCell(0).textContent = point.time;
+          row.insertCell(1).textContent = point.temperature !== null ? `${point.temperature}°C` : 'N/A';
+          row.insertCell(2).textContent = point.precipitation !== null ? `${point.precipitation}mm` : 'N/A';
+        });
+
+        // Add "NOW" divider row
+        if (observations.length > 0 && forecasts.length > 0) {
+          const nowRow = tableBody.insertRow();
+          nowRow.className = 'now-divider';
+          const nowCell = nowRow.insertCell(0);
+          nowCell.colSpan = 3;
+        }
+
+        // Add future forecast data
+        forecasts.forEach(point => {
+          const row = tableBody.insertRow();
+          row.insertCell(0).textContent = point.time;
+          row.insertCell(1).textContent = point.temperature !== null ? `${point.temperature}°C` : 'N/A';
+          row.insertCell(2).textContent = point.precipitation !== null ? `${point.precipitation}mm` : 'N/A';
+        });
+      }
 
 
       /****************************************************************************
@@ -137,7 +241,7 @@
 
           return response.text()
         } catch (e) {
-          terminal.write(`Error fetching "${queryType}" data for location "${API_PARAMS.place}".`);
+          console.error(`Error fetching "${queryType}" data for location "${API_PARAMS.place}".`);
           return null
         }
       }
@@ -309,7 +413,7 @@
         console.log("Station Info:", {observationStation, forecastStation})
 
         if (!observations.length && !forecast.length) {
-          terminal.write(`No data found. Exiting process... :(`);
+          document.getElementById('station-info').innerHTML = '<p style="color: red;">No data found. Exiting process... :(</p>';
           return
         }
 
@@ -322,19 +426,11 @@
         document.title = title;
         document.body.insertAdjacentHTML('afterbegin', `<h2 style="color: #1B1; font-family: monospace; text-align: center; margin: 10px 0;">${title}</h2>`);
 
-        terminal.clear()
-        terminal.write(`    THE PAST                    THE FUTURE`);
-        terminal.write(`    Temp | Rain                 Temp | Rain`);
+        // Populate the weather table
+        populateWeatherTable(observations, forecast);
 
-        // Print our values into the "terminal".
-        observations.forEach((point, i) => {
-          const point2 = forecast[i];
-          if (point2) {
-            terminal.write(`${point.time}: ${point.temperature}°C | ${point.precipitation}mm   ${point2.time}: ${point2.temperature}°C | ${point2.precipitation}mm`);
-          }
-        });
-
-        terminal.write(`\nRequested location '${place}' mapped to station '${stationName}'.`)
+        // Add station info
+        document.getElementById('station-info').innerHTML = `<p>Requested location '<strong>${requestedLocation}</strong>' mapped to station '<strong>${stationName}</strong>'.</p>`
 
 
         const combinedData = [
@@ -364,7 +460,7 @@
           windDirectionValues.push(windDirection);
         })
 
-        terminal.write(`\n`)
+        // Tables are now populated above
 
         // Calculate the boundary index between past and future data
         const boundaryIndex = observations.length - 1;

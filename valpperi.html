@@ -90,7 +90,7 @@
         const path = window.location.pathname;
         const fullname = path.split("/").at(-1)
 
-        return "salo" // fullname.split(".").at(0) // DEBUG
+        return "valpperi" // fullname.split(".").at(0) // DEBUG
       }
 
       function getFutureHoursFromQuery() {
@@ -179,6 +179,44 @@
         const xml = new window.DOMParser().parseFromString(xmlString, "text/xml")
         console.log("XML:", xml)
 
+        // Extract station information
+        let stationInfo = null;
+
+        // Try multiple approaches to get station info
+        const allElements = xml.getElementsByTagName('*');
+        let stationName = null;
+        let stationId = null;
+        let position = null;
+
+        // Look for elements containing station name
+        for (let elem of allElements) {
+          const tagName = elem.tagName.toLowerCase();
+          const textContent = elem.textContent;
+
+          // Look for name elements or elements containing station names
+          if (tagName.includes('name') && textContent && textContent.length > 2 && textContent.length < 100) {
+            stationName = textContent;
+          }
+
+          // Look for identifier/id elements
+          if (tagName.includes('identifier') && textContent) {
+            stationId = textContent;
+          }
+
+          // Look for position coordinates
+          if (tagName.includes('pos') && textContent) {
+            position = textContent;
+          }
+        }
+
+        if (stationName || stationId) {
+          stationInfo = {
+            name: stationName,
+            id: stationId,
+            position: position
+          };
+        }
+
         // Group data by timestamp since we have multiple parameters
         const dataByTime = {};
 
@@ -246,8 +284,10 @@
           }
         });
 
-      console.log("herez?", sortedData)
-        return sortedData;
+        return {
+          data: sortedData,
+          stationInfo: stationInfo
+        };
       }
 
 
@@ -257,15 +297,30 @@
         const observationXML = await callApi(QUERY_OBSERVATIONS)
         const forecastXML = await callApi(QUERY_FORECAST)
 
-        const observations = formatData(observationXML)
-        const forecast = formatData(forecastXML)
+        const obsResult = formatData(observationXML)
+        const forecastResult = formatData(forecastXML)
+
+        const observations = obsResult.data || []
+        const forecast = forecastResult.data || []
+        const observationStation = obsResult.stationInfo
+        const forecastStation = forecastResult.stationInfo
 
         console.log("OBS:", observations)
+        console.log("Station Info:", {observationStation, forecastStation})
 
         if (!observations.length && !forecast.length) {
           terminal.write(`\nNo data found. Exiting process... :(`);
           return
         }
+
+        // Create title with location and station info
+        const requestedLocation = getFileName().charAt(0).toUpperCase() + getFileName().slice(1);
+        const stationName = observationStation?.name || forecastStation?.name || 'Unknown Station';
+        const title = stationName ? stationName : requestedLocation;
+
+        // Update page title and add header
+        document.title = title;
+        document.body.insertAdjacentHTML('afterbegin', `<h2 style="color: #1B1; font-family: monospace; text-align: center; margin: 10px 0;">${title}</h2>`);
 
         terminal.clear()
         terminal.write(`\n    THE PAST                    THE FUTURE`);

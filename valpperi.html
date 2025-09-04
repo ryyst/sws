@@ -81,7 +81,7 @@
       const terminal = (() => {
         const _t = document.getElementById("terminal");
         return {
-          write: (text) => _t.append(text),
+          write: (text) => _t.append(`\n${text}`),
           clear: () => _t.textContent = ''
         };
       })();
@@ -137,7 +137,7 @@
 
           return response.text()
         } catch (e) {
-          terminal.write(`\nError fetching "${queryType}" data for location "${API_PARAMS.place}".`);
+          terminal.write(`Error fetching "${queryType}" data for location "${API_PARAMS.place}".`);
           return null
         }
       }
@@ -309,7 +309,7 @@
         console.log("Station Info:", {observationStation, forecastStation})
 
         if (!observations.length && !forecast.length) {
-          terminal.write(`\nNo data found. Exiting process... :(`);
+          terminal.write(`No data found. Exiting process... :(`);
           return
         }
 
@@ -323,16 +323,18 @@
         document.body.insertAdjacentHTML('afterbegin', `<h2 style="color: #1B1; font-family: monospace; text-align: center; margin: 10px 0;">${title}</h2>`);
 
         terminal.clear()
-        terminal.write(`\n    THE PAST                    THE FUTURE`);
-        terminal.write(`\n    Temp | Rain                 Temp | Rain`);
+        terminal.write(`    THE PAST                    THE FUTURE`);
+        terminal.write(`    Temp | Rain                 Temp | Rain`);
 
         // Print our values into the "terminal".
         observations.forEach((point, i) => {
           const point2 = forecast[i];
           if (point2) {
-            terminal.write(`\n${point.time}: ${point.temperature}°C | ${point.precipitation}mm   ${point2.time}: ${point2.temperature}°C | ${point2.precipitation}mm`);
+            terminal.write(`${point.time}: ${point.temperature}°C | ${point.precipitation}mm   ${point2.time}: ${point2.temperature}°C | ${point2.precipitation}mm`);
           }
         });
+
+        terminal.write(`\nRequested location '${place}' mapped to station '${stationName}'.`)
 
 
         const combinedData = [

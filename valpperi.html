@@ -115,8 +115,8 @@
       const API_BASE = "https://opendata.fmi.fi/wfs";
       const DEFAULT_FUTURE_HOURS = 28
       const DEFAULT_PAST_HOURS = 12
-      const STEP_LIMIT_TINY = 20 // Jump from 15mins to 30min intervals
-      const STEP_LIMIT_SMALL = 30 // Jump from 30mins to 60min intervals
+      const STEP_LIMIT_TINY = 10 // Jump from 15mins to 30min intervals
+      const STEP_LIMIT_SMALL = 20 // Jump from 30mins to 60min intervals
 
       const QUERY_OBSERVATIONS = 'fmi::observations::weather::timevaluepair'
       const QUERY_FORECAST = 'fmi::forecast::harmonie::surface::point::timevaluepair'
@@ -132,7 +132,7 @@
 
 
       function getObservationParams() {
-        const timestep = 60 // getOptimalTimestep();
+        const timestep = getOptimalTimestep();
         const now = new Date();
         const pastTime = new Date(now.getTime() - pastHours * 60 * 60 * 1000);
 

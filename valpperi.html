@@ -60,7 +60,7 @@
         text-align: left;
         border-bottom: 2px solid #e0e0e0;
         font-size: 13px;
-        text-transform: uppercase;
+        text-align: center;
         letter-spacing: 0.5px;
       }
 
@@ -68,6 +68,7 @@
         padding: 12px 16px;
         border-bottom: 1px solid #f0f0f0;
         color: #616161;
+        text-align: center;
       }
 
       tr:hover td {
@@ -110,11 +111,9 @@
           <thead>
             <tr>
               <th>Time</th>
-              <th>Temp (°C)</th>
-              <th>Rain (mm)</th>
-              <th>PoP (%)</th>
+              <th>Temp</th>
+              <th>Rain</th>
               <th>Wind (m/s)</th>
-              <th>Direction</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -254,15 +253,23 @@
           const row = tableBody.insertRow();
           row.insertCell(0).textContent = point.time;
           row.insertCell(1).textContent = point.temperature !== null ? `${point.temperature}°C` : 'N/A';
-          row.insertCell(2).textContent = point.precipitation !== null ? `${point.precipitation}mm` : 'N/A';
-          row.insertCell(3).textContent = point.precipitationProbability !== null ? `${point.precipitationProbability}%` : 'N/A';
-          row.insertCell(4).textContent = point.windSpeed !== null ? `${point.windSpeed}` : 'N/A';
-          const directionCell = row.insertCell(5);
-          if (point.windDirection !== null) {
+
+          // Rain column with PoP in parentheses
+          const rainCell = row.insertCell(2);
+          const rainValue = point.precipitation !== null ? `${point.precipitation}mm` : '0mm';
+          const popValue = point.precipitationProbability !== null ? `${point.precipitationProbability}%` : '0%';
+          rainCell.textContent = `${rainValue} (${popValue})`;
+
+          // Wind column with speed and direction arrow
+          const windCell = row.insertCell(3);
+          if (point.windSpeed !== null && point.windDirection !== null) {
             const arrowCanvas = formatWindDirection(point.windDirection);
-            directionCell.appendChild(arrowCanvas);
+            windCell.appendChild(arrowCanvas);
+            windCell.appendChild(document.createTextNode(` ${point.windSpeed}m/s`));
+          } else if (point.windSpeed !== null) {
+            windCell.textContent = `${point.windSpeed}m/s`;
           } else {
-            directionCell.textContent = 'N/A';
+            windCell.textContent = 'N/A';
           }
         });
 
@@ -271,7 +278,7 @@
           const nowRow = tableBody.insertRow();
           nowRow.className = 'now-divider';
           const nowCell = nowRow.insertCell(0);
-          nowCell.colSpan = 6;
+          nowCell.colSpan = 4;
         }
 
         // Add future forecast data
@@ -279,15 +286,23 @@
           const row = tableBody.insertRow();
           row.insertCell(0).textContent = point.time;
           row.insertCell(1).textContent = point.temperature !== null ? `${point.temperature}°C` : 'N/A';
-          row.insertCell(2).textContent = point.precipitation !== null ? `${point.precipitation}mm` : 'N/A';
-          row.insertCell(3).textContent = point.precipitationProbability !== null ? `${point.precipitationProbability}%` : 'N/A';
-          row.insertCell(4).textContent = point.windSpeed !== null ? `${point.windSpeed}` : 'N/A';
-          const directionCell = row.insertCell(5);
-          if (point.windDirection !== null) {
+
+          // Rain column with PoP in parentheses
+          const rainCell = row.insertCell(2);
+          const rainValue = point.precipitation !== null ? `${point.precipitation}mm` : '0mm';
+          const popValue = point.precipitationProbability !== null ? `${point.precipitationProbability}%` : '0%';
+          rainCell.textContent = `${rainValue} (${popValue})`;
+
+          // Wind column with speed and direction arrow
+          const windCell = row.insertCell(3);
+          if (point.windSpeed !== null && point.windDirection !== null) {
             const arrowCanvas = formatWindDirection(point.windDirection);
-            directionCell.appendChild(arrowCanvas);
+            windCell.appendChild(document.createTextNode(`${point.windSpeed} `));
+            windCell.appendChild(arrowCanvas);
+          } else if (point.windSpeed !== null) {
+            windCell.textContent = `${point.windSpeed}`;
           } else {
-            directionCell.textContent = 'N/A';
+            windCell.textContent = '-';
           }
         });
       }
@@ -568,8 +583,8 @@
         const boundaryIndex = observations.length - 1;
 
 
-        // Custom plugin to draw vertical line at boundary
-        const verticalLinePlugin = {
+        // Custom plugin to draw vertical everything we want.
+        const customElementPlugin = {
           id: 'verticalLine',
           afterDraw: function(chart) {
             const ctx = chart.ctx;
@@ -652,7 +667,7 @@
         };
 
         // Register the plugin
-        Chart.register(verticalLinePlugin);
+        Chart.register(customElementPlugin);
 
         // Last step, create the chart itself.
         new Chart(CHART_ELEM, {
@@ -690,6 +705,14 @@
             ]
           },
           options: {
+            layout: {
+              padding: {
+                top: 25,
+                right: 0,
+                bottom: -40, // Reduce bottom padding to counteract tick padding
+                left: 0
+              }
+            },
             scales: {
               x: {
                 ticks: {

@@ -90,6 +90,9 @@
               <th>Time</th>
               <th>Temp (°C)</th>
               <th>Rain (mm)</th>
+              <th>PoP (%)</th>
+              <th>Wind (m/s)</th>
+              <th>Direction</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -158,6 +161,65 @@
         };
       }
 
+      function formatWindDirection(degrees) {
+        if (degrees === null || degrees === undefined) return 'N/A';
+
+        const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+        const index = Math.round(degrees / 22.5) % 16;
+        const directionText = `${directions[index]} (${Math.round(degrees)}°)`;
+
+        // Create a small canvas for the wind arrow
+        const canvas = document.createElement('canvas');
+        canvas.width = 24;
+        canvas.height = 24;
+        canvas.style.display = 'inline-block';
+        canvas.style.verticalAlign = 'middle';
+        canvas.style.marginRight = '8px';
+
+        const ctx = canvas.getContext('2d');
+        const centerX = 12;
+        const centerY = 12;
+        const arrowLength = 8;
+
+        // Convert degrees to radians (subtract 90 to make 0° point north)
+        const radians = (degrees - 90) * (Math.PI / 180);
+
+        // Calculate arrow end point
+        const endX = centerX + Math.cos(radians) * arrowLength;
+        const endY = centerY + Math.sin(radians) * arrowLength;
+
+        // Draw arrow
+        ctx.strokeStyle = '#1B1';
+        ctx.fillStyle = '#1B1';
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+
+        // Draw arrow shaft
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+
+        // Draw arrow head
+        const headLength = 4;
+        const headAngle = Math.PI / 6;
+
+        ctx.beginPath();
+        ctx.moveTo(endX, endY);
+        ctx.lineTo(
+          endX - headLength * Math.cos(radians - headAngle),
+          endY - headLength * Math.sin(radians - headAngle)
+        );
+        ctx.moveTo(endX, endY);
+        ctx.lineTo(
+          endX - headLength * Math.cos(radians + headAngle),
+          endY - headLength * Math.sin(radians + headAngle)
+        );
+        ctx.stroke();
+
+        return canvas;
+      }
+
       function populateWeatherTable(observations, forecasts) {
         const table = document.getElementById("weather-table");
         table.style.setProperty("display", "flex")
@@ -171,6 +233,15 @@
           row.insertCell(0).textContent = point.time;
           row.insertCell(1).textContent = point.temperature !== null ? `${point.temperature}°C` : 'N/A';
           row.insertCell(2).textContent = point.precipitation !== null ? `${point.precipitation}mm` : 'N/A';
+          row.insertCell(3).textContent = point.precipitationProbability !== null ? `${point.precipitationProbability}%` : 'N/A';
+          row.insertCell(4).textContent = point.windSpeed !== null ? `${point.windSpeed}` : 'N/A';
+          const directionCell = row.insertCell(5);
+          if (point.windDirection !== null) {
+            const arrowCanvas = formatWindDirection(point.windDirection);
+            directionCell.appendChild(arrowCanvas);
+          } else {
+            directionCell.textContent = 'N/A';
+          }
         });
 
         // Add "NOW" divider row
@@ -178,7 +249,7 @@
           const nowRow = tableBody.insertRow();
           nowRow.className = 'now-divider';
           const nowCell = nowRow.insertCell(0);
-          nowCell.colSpan = 3;
+          nowCell.colSpan = 6;
         }
 
         // Add future forecast data
@@ -187,6 +258,15 @@
           row.insertCell(0).textContent = point.time;
           row.insertCell(1).textContent = point.temperature !== null ? `${point.temperature}°C` : 'N/A';
           row.insertCell(2).textContent = point.precipitation !== null ? `${point.precipitation}mm` : 'N/A';
+          row.insertCell(3).textContent = point.precipitationProbability !== null ? `${point.precipitationProbability}%` : 'N/A';
+          row.insertCell(4).textContent = point.windSpeed !== null ? `${point.windSpeed}` : 'N/A';
+          const directionCell = row.insertCell(5);
+          if (point.windDirection !== null) {
+            const arrowCanvas = formatWindDirection(point.windDirection);
+            directionCell.appendChild(arrowCanvas);
+          } else {
+            directionCell.textContent = 'N/A';
+          }
         });
       }
 

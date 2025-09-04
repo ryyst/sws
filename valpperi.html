@@ -40,8 +40,12 @@
 
       const CHART_ELEM = document.getElementById("chart")
 
+
+      const urlParams = new URLSearchParams(window.location.search);
+
       const pastHours = getPastHoursFromQuery();
       const futureHours = getFutureHoursFromQuery();
+      const place = getPlaceFromQuery();
 
 
       function getObservationParams() {
@@ -52,7 +56,7 @@
         return {
           request: 'getFeature',
           parameters: 'temperature,Precipitation1h',
-          place: getLocationFromQuery(),
+          place: place,
           timestep,
           starttime: pastTime.toISOString(),
           endtime: now.toISOString()
@@ -67,7 +71,7 @@
         return {
           request: 'getFeature',
           parameters: 'temperature,Precipitation1h,PoP,WindSpeedMS,WindDirection',
-          place: getLocationFromQuery(),
+          place: place,
           timestep,
           starttime: now.toISOString(),
           endtime: futureTime.toISOString()
@@ -86,20 +90,17 @@
       /****************************************************************************
        * Business logicks
        */
-      function getLocationFromQuery() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const location = urlParams.get('q');
-        return location || 'tampere'; // Default to Tampere - Finland's second largest city, nice central location
+      function getPlaceFromQuery() {
+        // Default to Tampere - Finland's second largest city, nice central location
+        return urlParams.get('q') || 'tampere';
       }
 
       function getFutureHoursFromQuery() {
-        const urlParams = new URLSearchParams(window.location.search);
         const future = parseInt(urlParams.get('future'));
         return isNaN(future) ? DEFAULT_FUTURE_HOURS : Math.max(1, Math.min(7*24, future)); // Max 1 week
       }
 
       function getPastHoursFromQuery() {
-        const urlParams = new URLSearchParams(window.location.search);
         const past = parseInt(urlParams.get('past'));
         return isNaN(past) ? DEFAULT_PAST_HOURS : Math.max(1, Math.min(7*24, past)); // Max 1 week
       }
@@ -313,7 +314,7 @@
         }
 
         // Create title with location and station info
-        const requestedLocation = getLocationFromQuery().charAt(0).toUpperCase() + getLocationFromQuery().slice(1);
+        const requestedLocation = place.charAt(0).toUpperCase() + place.slice(1);
         const stationName = observationStation?.name || forecastStation?.name || 'Unknown Station';
         const title = stationName ? stationName : requestedLocation;
 

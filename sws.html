@@ -115,6 +115,10 @@
         font-size: 14px;
       }
 
+      table td canvas {
+        margin-right: -8px !important;
+      }
+
       th {
         background: var(--bg-hover);
         color: var(--text-secondary);
@@ -160,6 +164,7 @@
         background: var(--bg-secondary);
         border-radius: 8px;
         box-shadow: 0 2px 4px var(--shadow);
+        display: none;
       }
     </style>
   </head>
@@ -175,7 +180,7 @@
               <th>Time</th>
               <th>Temp</th>
               <th>Rain</th>
-              <th>Wind (m/s)</th>
+              <th>Wind</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -242,131 +247,6 @@
           starttime: now.toISOString(),
           endtime: futureTime.toISOString()
         };
-      }
-
-      function formatWindDirection(degrees) {
-        if (degrees === null || degrees === undefined) return 'N/A';
-
-        const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
-        const index = Math.round(degrees / 22.5) % 16;
-        const directionText = `${directions[index]} (${Math.round(degrees)}°)`;
-
-        // Create a small canvas for the wind arrow
-        const canvas = document.createElement('canvas');
-        canvas.width = 24;
-        canvas.height = 24;
-        canvas.style.display = 'inline-block';
-        canvas.style.verticalAlign = 'middle';
-        canvas.style.marginRight = '8px';
-
-        const ctx = canvas.getContext('2d');
-        const centerX = 12;
-        const centerY = 12;
-        const arrowLength = 8;
-
-        // Convert degrees to radians (subtract 90 to make 0° point north)
-        const radians = (degrees - 90) * (Math.PI / 180);
-
-        // Calculate arrow end point
-        const endX = centerX + Math.cos(radians) * arrowLength;
-        const endY = centerY + Math.sin(radians) * arrowLength;
-
-        // Draw arrow
-        ctx.strokeStyle = '#424242';
-        ctx.fillStyle = '#424242';
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
-
-        // Draw arrow shaft
-        ctx.beginPath();
-        ctx.moveTo(centerX, centerY);
-        ctx.lineTo(endX, endY);
-        ctx.stroke();
-
-        // Draw arrow head
-        const headLength = 4;
-        const headAngle = Math.PI / 6;
-
-        ctx.beginPath();
-        ctx.moveTo(endX, endY);
-        ctx.lineTo(
-          endX - headLength * Math.cos(radians - headAngle),
-          endY - headLength * Math.sin(radians - headAngle)
-        );
-        ctx.moveTo(endX, endY);
-        ctx.lineTo(
-          endX - headLength * Math.cos(radians + headAngle),
-          endY - headLength * Math.sin(radians + headAngle)
-        );
-        ctx.stroke();
-
-        return canvas;
-      }
-
-      function populateWeatherTable(observations, forecasts) {
-        const table = document.getElementById("weather-table");
-        table.style.setProperty("display", "flex")
-
-        const tableBody = document.querySelector("#weather-table tbody");
-        const stationInfo = document.getElementById("station-info");
-
-        // Add past weather data
-        observations.forEach(point => {
-          const row = tableBody.insertRow();
-          row.insertCell(0).textContent = point.time;
-          row.insertCell(1).textContent = point.temperature !== null ? `${point.temperature}°C` : 'N/A';
-
-          // Rain column with PoP in parentheses
-          const rainCell = row.insertCell(2);
-          const rainValue = point.precipitation !== null ? `${point.precipitation}mm` : '0mm';
-          const popValue = point.precipitationProbability !== null ? `${point.precipitationProbability}%` : '0%';
-          rainCell.textContent = `${rainValue} (${popValue})`;
-
-          // Wind column with speed and direction arrow
-          const windCell = row.insertCell(3);
-          if (point.windSpeed !== null && point.windDirection !== null) {
-            const arrowCanvas = formatWindDirection(point.windDirection);
-            windCell.appendChild(arrowCanvas);
-            windCell.appendChild(document.createTextNode(` ${point.windSpeed}m/s`));
-          } else if (point.windSpeed !== null) {
-            windCell.textContent = `${point.windSpeed}m/s`;
-          } else {
-            windCell.textContent = 'N/A';
-          }
-        });
-
-        // Add "NOW" divider row
-        if (observations.length > 0 && forecasts.length > 0) {
-          const nowRow = tableBody.insertRow();
-          nowRow.className = 'now-divider';
-          const nowCell = nowRow.insertCell(0);
-          nowCell.colSpan = 4;
-        }
-
-        // Add future forecast data
-        forecasts.forEach(point => {
-          const row = tableBody.insertRow();
-          row.insertCell(0).textContent = point.time;
-          row.insertCell(1).textContent = point.temperature !== null ? `${point.temperature}°C` : 'N/A';
-
-          // Rain column with PoP in parentheses
-          const rainCell = row.insertCell(2);
-          const rainValue = point.precipitation !== null ? `${point.precipitation}mm` : '0mm';
-          const popValue = point.precipitationProbability !== null ? `${point.precipitationProbability}%` : '0%';
-          rainCell.textContent = `${rainValue} (${popValue})`;
-
-          // Wind column with speed and direction arrow
-          const windCell = row.insertCell(3);
-          if (point.windSpeed !== null && point.windDirection !== null) {
-            const arrowCanvas = formatWindDirection(point.windDirection);
-            windCell.appendChild(document.createTextNode(`${point.windSpeed} `));
-            windCell.appendChild(arrowCanvas);
-          } else if (point.windSpeed !== null) {
-            windCell.textContent = `${point.windSpeed}`;
-          } else {
-            windCell.textContent = '-';
-          }
-        });
       }
 
 
@@ -445,23 +325,6 @@
         return `${capitalize(dayName)} - ${hours}:${mins}`;
       }
 
-      function getColorOfDay(dateStr) {
-        const d = new Date(dateStr)
-        const dayName = d.toLocaleDateString('fi', { weekday: 'short' });
-
-        const colors = {
-          "ma": "red",
-          "ti": "green",
-          "ke": "teal",
-          "to": "magenta",
-          "pe": "red",
-          "la": "green",
-          "su": "teal",
-        }
-
-        return colors[dayName]
-      }
-
       /** Parse and format the data from a raw XML response string. */
       function formatData(xmlString) {
         const xml = new window.DOMParser().parseFromString(xmlString, "text/xml")
@@ -530,7 +393,6 @@
 
               if (!dataByTime[time]) {
                 dataByTime[time] = {
-                  color: getColorOfDay(time),
                   time: formatTime(time, true),
                   temperature: null,
                   precipitation: null,
@@ -578,6 +440,113 @@
         };
       }
 
+      function formatWindDirection(degrees) {
+        if (degrees === null || degrees === undefined) return 'N/A';
+
+        const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+        const index = Math.round(degrees / 22.5) % 16;
+        const directionText = `${directions[index]} (${Math.round(degrees)}°)`;
+
+        // Create a small canvas for the wind arrow
+        const canvas = document.createElement('canvas');
+        canvas.width = 24;
+        canvas.height = 24;
+        canvas.style.display = 'inline-block';
+        canvas.style.verticalAlign = 'middle';
+        canvas.style.marginRight = '8px';
+
+        const ctx = canvas.getContext('2d');
+        const centerX = 12;
+        const centerY = 12;
+        const arrowLength = 8;
+
+        // Convert degrees to radians (subtract 90 to make 0° point north)
+        const radians = (degrees - 90) * (Math.PI / 180);
+
+        // Calculate arrow end point
+        const endX = centerX + Math.cos(radians) * arrowLength;
+        const endY = centerY + Math.sin(radians) * arrowLength;
+
+        // Draw arrow
+        ctx.strokeStyle = '#424242';
+        ctx.fillStyle = '#424242';
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+
+        // Draw arrow shaft
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+
+        // Draw arrow head
+        const headLength = 4;
+        const headAngle = Math.PI / 6;
+
+        ctx.beginPath();
+        ctx.moveTo(endX, endY);
+        ctx.lineTo(
+          endX - headLength * Math.cos(radians - headAngle),
+          endY - headLength * Math.sin(radians - headAngle)
+        );
+        ctx.moveTo(endX, endY);
+        ctx.lineTo(
+          endX - headLength * Math.cos(radians + headAngle),
+          endY - headLength * Math.sin(radians + headAngle)
+        );
+        ctx.stroke();
+
+        return canvas;
+      }
+
+      function populateWeatherTable(observations, forecasts) {
+        const table = document.getElementById("weather-table");
+        table.style.setProperty("display", "flex")
+
+        const tableBody = document.querySelector("#weather-table tbody");
+        const stationInfo = document.getElementById("station-info");
+
+        const addData = (point) => {
+          const row = tableBody.insertRow();
+          row.insertCell(0).textContent = point.time;
+          row.insertCell(1).textContent = point.temperature !== null ? `${point.temperature}°C` : 'N/A';
+
+          // Rain column with PoP in parentheses
+          const rainCell = row.insertCell(2);
+          const rainValue = point.precipitation !== null ? `${point.precipitation}mm` : '0mm';
+          const popValue = point.precipitationProbability !== null ? `${point.precipitationProbability}%` : '0%';
+          rainCell.textContent = `${rainValue} (${popValue})`;
+
+          // Wind column with speed and direction arrow
+          const windCell = row.insertCell(3);
+          if (point.windSpeed !== null) {
+            windCell.appendChild(document.createTextNode(`${point.windSpeed}`));
+          }
+
+          if (point.windDirection !== null) {
+            const arrowCanvas = formatWindDirection(point.windDirection);
+            windCell.appendChild(arrowCanvas);
+          }
+
+          if (!point.windDirection && !point.windDirection) {
+            windCell.textContent = 'N/A';
+          }
+        }
+
+        // Add past weather data
+        observations.forEach(addData);
+
+        // Add "NOW" divider row
+        if (observations.length > 0 && forecasts.length > 0) {
+          const nowRow = tableBody.insertRow();
+          nowRow.className = 'now-divider';
+          const nowCell = nowRow.insertCell(0);
+          nowCell.colSpan = 4;
+        }
+
+        // Add future forecast data
+        forecasts.forEach(addData);
+      }
 
       // Helper function to get CSS variable values
       function getCSSVariable(name) {
@@ -848,7 +817,7 @@
                 },
                 ticks: {
                   color: getCSSVariable('--text-primary'),
-                  stepSize: 2
+                  stepSize: 1
                 }
               }
             },

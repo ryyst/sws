@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Static weather station - SWS</title>
+    <title>Static Weather Station</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
@@ -211,7 +211,7 @@
       const DEFAULT_PAST_HOURS = 12;
 
       // Timestep thresholds for data optimization
-      const STEP_LIMIT_TINY = 10;  // Jump from 10min to 30min intervals
+      const STEP_LIMIT_TINY = 15;  // Jump from 10min to 30min intervals
       const STEP_LIMIT_SMALL = 20; // Jump from 30min to 60min intervals
 
       // DOM elements
@@ -296,7 +296,7 @@
         const totalHours = futureHours + pastHours;
 
         if (totalHours <= STEP_LIMIT_TINY) {
-          return 10
+          return 20
         }
         if (totalHours <= STEP_LIMIT_SMALL) {
           return 30
@@ -660,7 +660,7 @@
         console.log("Station Info:", {observationStation, forecastStation})
 
         if (!observations.length && !forecast.length) {
-          document.getElementById('station-info').innerHTML = '<p style="color: red;">No data found. Exiting process... :(</p>';
+          document.getElementById('station-info').innerHTML = '<p style="color: red;">No data found. Please try another query... :(</p>';
           return
         }
 

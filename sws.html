@@ -325,7 +325,6 @@
           };
 
           const apiUrl = `${API_BASE}?${new URLSearchParams(params)}`;
-          console.log("Calling API:", apiUrl);
 
           const response = await fetch(apiUrl);
 
@@ -389,8 +388,6 @@
           console.error('XML parsing failed:', parserError.textContent);
           return { data: [], stationInfo: null };
         }
-
-        console.log("Parsed XML successfully");
 
         // Extract station information
         let stationInfo = null;
@@ -656,9 +653,6 @@
         const forecast = forecastResult.data || []
         const observationStation = obsResult.stationInfo
         const forecastStation = forecastResult.stationInfo
-
-        console.log("OBS:", observations)
-        console.log("Station Info:", {observationStation, forecastStation})
 
         if (!observations.length && !forecast.length) {
           document.getElementById('station-info').innerHTML = '<p style="color: red;">No data found. Please try another query... :(</p>';

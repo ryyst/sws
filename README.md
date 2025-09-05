@@ -7,7 +7,7 @@ Just one HTML file with suspiciously inlined Chart.js library. Drag & drop anywh
 ## Installation
 
 ```sh
-wget https://raw.githubusercontent.com/ryyst/sws/refs/heads/main/sws.html && firefox sws.html
+wget https://ryyst.github.io/sws && firefox index.html
 ```
 
 

@@ -226,7 +226,7 @@
         const locationParam = params.get('q');
         const place = (locationParam && typeof locationParam === 'string' && locationParam.trim().length > 0)
           ? locationParam.trim().toLowerCase()
-          : 'tampere';
+          : 'salo';
 
         // Parse future hours parameter
         const futureParam = parseInt(params.get('future'), 10);
@@ -238,7 +238,7 @@
 
         // Parse theme parameter
         const themeParam = params.get('theme');
-        const theme = themeParam === 'light' || themeParam === 'dark' ? themeParam : null;
+        const theme = themeParam === 'light' || themeParam === 'dark' ? themeParam : "light";
 
         return {
           place,

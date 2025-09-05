@@ -217,11 +217,38 @@
       // DOM elements
       const CHART_ELEM = document.getElementById("chart");
 
-      // Parse URL parameters once
-      const urlParams = new URLSearchParams(window.location.search);
-      const pastHours = getPastHoursFromQuery();
-      const futureHours = getFutureHoursFromQuery();
-      const place = getPlaceFromQuery();
+      // Parse URL parameters, supporting both query params and hash.
+      function getUserParams() {
+        const { search, hash } = window.location;
+        const params = new URLSearchParams(search || hash.replace("#", "?"));
+
+        // Parse place parameter
+        const locationParam = params.get('q');
+        const place = (locationParam && typeof locationParam === 'string' && locationParam.trim().length > 0)
+          ? locationParam.trim().toLowerCase()
+          : 'tampere';
+
+        // Parse future hours parameter
+        const futureParam = parseInt(params.get('future'), 10);
+        const futureHours = isNaN(futureParam) ? DEFAULT_FUTURE_HOURS : Math.max(1, Math.min(7*24, futureParam));
+
+        // Parse past hours parameter
+        const pastParam = parseInt(params.get('past'), 10);
+        const pastHours = isNaN(pastParam) ? DEFAULT_PAST_HOURS : Math.max(1, Math.min(7*24, pastParam));
+
+        // Parse theme parameter
+        const themeParam = params.get('theme');
+        const theme = themeParam === 'light' || themeParam === 'dark' ? themeParam : null;
+
+        return {
+          place,
+          futureHours,
+          pastHours,
+          theme
+        };
+      }
+
+      const { place, futureHours, pastHours, theme } = getUserParams()
 
 
       /****************************************************************************
@@ -267,30 +294,6 @@
       /****************************************************************************
        * Query parameter helpers and utilities
        ***************************************************************************/
-      function getPlaceFromQuery() {
-        const location = urlParams.get('q');
-        // Validate and sanitize location input
-        if (location && typeof location === 'string' && location.trim().length > 0) {
-          return location.trim().toLowerCase();
-        }
-        // Default to Tampere - Finland's second largest city, nice central location
-        return 'tampere';
-      }
-
-      function getFutureHoursFromQuery() {
-        const future = parseInt(urlParams.get('future'), 10);
-        return isNaN(future) ? DEFAULT_FUTURE_HOURS : Math.max(1, Math.min(7*24, future));
-      }
-
-      function getPastHoursFromQuery() {
-        const past = parseInt(urlParams.get('past'), 10);
-        return isNaN(past) ? DEFAULT_PAST_HOURS : Math.max(1, Math.min(7*24, past));
-      }
-
-      function getThemeFromQuery() {
-        const theme = urlParams.get('theme');
-        return theme === 'light' || theme === 'dark' ? theme : null;
-      }
 
       function getOptimalTimestep() {
         const totalHours = futureHours + pastHours;
@@ -623,11 +626,9 @@
        * Apply theme override from URL parameter or use browser preference
        */
       function applyThemeOverride() {
-        const themeOverride = getThemeFromQuery();
-
-        if (themeOverride) {
+        if (theme) {
           // Explicit theme override from URL
-          document.documentElement.setAttribute('data-theme', themeOverride);
+          document.documentElement.setAttribute('data-theme', theme);
         } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
           // Browser prefers dark theme
           document.documentElement.setAttribute('data-theme', 'dark');
